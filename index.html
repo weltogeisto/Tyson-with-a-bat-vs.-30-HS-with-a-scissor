@@ -132,6 +132,7 @@
     /* Responsive HUD for mobile */
     @media (max-width: 768px) {
       .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .wrap { min-height:460px; } /* allow more horizontal breathing room on small screens */
     }
     @media (max-width: 480px) {
       .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -144,7 +145,6 @@
   <div class="wrap" id="wrap">
     <canvas id="game"></canvas>
 
-    <!-- Error overlay -->
     <div id="errOverlay" class="overlay hide">
       <div class="panel">
         <div style="font-weight:800;font-size:20px;margin-bottom:6px">Script error</div>
@@ -152,7 +152,6 @@
       </div>
     </div>
 
-    <!-- HUD -->
     <div class="hud">
       <div class="card">
         <div class="muted" style="text-transform:uppercase;letter-spacing:.08em">Mode</div>
@@ -169,7 +168,6 @@
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="controls">
       <div class="row card" style="gap:12px; align-items:center;">
         <span class="muted">Difficulty</span>
@@ -187,19 +185,17 @@
       </div>
     </div>
 
-    <!-- Start overlay (auto 3-2-1) -->
     <div class="overlay" id="startOverlay">
       <div class="panel">
         <h1 class="countNum" id="countNum">3</h1>
         <div class="countSub" id="countLabel">Starting in…</div>
         <p style="margin:0 0 12px; color:#cbd5e1">
           Kite the swarm, use desks as choke points, and time your bat swing.<br>
-          Elites can drop a <span style="color:var(--warn);font-weight:700">Flame Bat</span>. After 10 kills, beware: a massive purple Epstone will enter the fray!
+          Elites can drop a <span style="color:var(--warn);font-weight:700)">Flame Bat</span>. After 10 kills, beware: a massive purple Epstone will enter the fray!
         </p>
       </div>
     </div>
 
-    <!-- End overlay -->
     <div class="overlay hide" id="endOverlay">
       <div class="panel">
         <div id="endTitle" style="font-size:28px;font-weight:800;margin-bottom:8px">Result</div>
@@ -389,7 +385,6 @@
         state.nextWildIn=18+Math.random()*12;
       }
 
-      // Layout / level
       function resize(){
         const dpr=window.devicePixelRatio||1;
         const w=Math.min(wrap.clientWidth,1100);
@@ -401,17 +396,71 @@
       }
       window.addEventListener('resize',resize);
 
+      // ************ RESPONSIVE OBSTACLES (mobile-friendly) ************
       function createLevel(){
-        const W=parseInt(canvas.style.width)||canvas.width;
-        const H=parseInt(canvas.style.height)||canvas.height;
-        const margin=24;
-        const obstacles=[];
-        const deskW=120,deskH=60,gapX=40,gapY=40,rows=2,cols=3;
-        const sx=(W-(cols*deskW+(cols-1)*gapX))/2;
-        const sy=(H-(rows*deskH+(rows-1)*gapY))/2;
-        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) obstacles.push({x:sx+c*(deskW+gapX),y:sy+r*(deskH+gapY),w:deskW,h:deskH});
-        return {W,H,room:{w:W,h:H,margin},obstacles};
+        const W = parseInt(canvas.style.width) || canvas.width;
+        const H = parseInt(canvas.style.height) || canvas.height;
+
+        const isLandscape = W >= H;
+        const isPhone = Math.min(W, H) <= 640; // phones & small tablets
+        const margin = clamp(Math.round(Math.min(W, H) * 0.035), 16, 28);
+
+        const obstacles = [];
+
+        if (!isPhone) {
+          // Desktop / larger tablets: scaled 2 x 3 desks (original layout, responsive)
+          const cols = 3, rows = 2;
+          const deskW = clamp(Math.round(W * 0.11), 100, 140);
+          const deskH = clamp(Math.round(H * 0.08),  52,  72);
+          const gapX  = clamp(Math.round(W * 0.04),  28,  48);
+          const gapY  = clamp(Math.round(H * 0.05),  28,  52);
+
+          const sx=(W-(cols*deskW+(cols-1)*gapX))/2;
+          const sy=(H-(rows*deskH+(rows-1)*gapY))/2;
+          for (let r=0;r<rows;r++){
+            for (let c=0;c<cols;c++){
+              obstacles.push({x:sx+c*(deskW+gapX), y:sy+r*(deskH+gapY), w:deskW, h:deskH});
+            }
+          }
+        } else if (isLandscape) {
+          // Phone landscape: 1 x 3 low horizontal benches (short height)
+          const rows = 1, cols = 3;
+          const deskW = clamp(Math.round(W * 0.12), 90, 120);
+          const deskH = clamp(Math.round(H * 0.10), 36, 50); // short
+          const gapX  = clamp(Math.round(W * 0.06), 24, 44);
+
+          const sy = Math.round(H * 0.50 - deskH/2);
+          const sx = (W - (cols*deskW + (cols-1)*gapX)) / 2;
+
+          for (let c=0;c<cols;c++){
+            obstacles.push({x:sx+c*(deskW+gapX), y:sy, w:deskW, h:deskH});
+          }
+          // Tiny end caps for variety (don’t block lanes)
+          const capW = clamp(Math.round(W * 0.08), 64, 90);
+          const capH = clamp(Math.round(H * 0.08), 28, 40);
+          obstacles.push({x:margin,             y:Math.round(H*0.25), w:capW, h:capH});
+          obstacles.push({x:W - margin - capW,  y:Math.round(H*0.70), w:capW, h:capH});
+        } else {
+          // Phone portrait: 2 x 2 smaller desks with generous lanes
+          const rows = 2, cols = 2;
+          const deskW = clamp(Math.round(W * 0.28), 80, 110);
+          const deskH = clamp(Math.round(H * 0.08), 44, 60);
+          const gapX  = clamp(Math.round(W * 0.06), 24, 36);
+          const gapY  = clamp(Math.round(H * 0.06), 24, 36);
+
+          const sx=(W-(cols*deskW+(cols-1)*gapX))/2;
+          const sy=(H-(rows*deskH+(rows-1)*gapY))/2;
+
+          for (let r=0;r<rows;r++){
+            for (let c=0;c<cols;c++){
+              obstacles.push({x:sx+c*(deskW+gapX), y:sy+r*(deskH+gapY), w:deskW, h:deskH});
+            }
+          }
+        }
+
+        return { W, H, room:{ w:W, h:H, margin }, obstacles };
       }
+      // ***************************************************************
 
       function createGame(){
         const {W,H,room,obstacles}=createLevel();
@@ -450,7 +499,6 @@
       }
 
       function spawnPowerUp(x,y,type){ state.powerUps.push({type,x,y,r:10,t:0,taken:false}); }
-
       function spawnEpstone(){
         const x=state.W*0.5, y=state.H*0.25;
         state.epstone={ x,y,r:28,hp:20,maxHp:20,speed:state.epSpeed,disarmed:false, knockT:0,knockVx:0,knockVy:0, batAngle:0,batSpeed:3.2,batArc:1.1,batRange:95, phase:1, orbiters:[], stolenHp: 0 };
@@ -684,7 +732,7 @@
         state.shake=Math.max(0,state.shake-dt*4);
         updateParticles(); updateFloats(); updateClones(dt);
 
-        // Boss final phase trigger speech
+        // Boss final phase trigger
         if (state.enemies.length === 0 && state.epstone && !state.epstone.disarmed && !state.bossPhaseActive) {
           state.bossPhaseActive = true;
           state.epstone.hp += state.epstone.stolenHp;
