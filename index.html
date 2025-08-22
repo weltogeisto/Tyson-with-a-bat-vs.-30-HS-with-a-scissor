@@ -164,6 +164,7 @@
         <label class="switch"><input id="mute" type="checkbox" /> Mute</label>
       </div>
       <div class="row">
+        <!-- inline onclick kept as fallback; programmatic listeners added in JS -->
         <button class="start" id="startBtn" type="button" onclick="startGame()">Start</button>
         <button class="reset" id="resetBtn" type="button">Reset</button>
       </div>
@@ -195,6 +196,7 @@
           </div>
         </div>
         <div class="actions">
+          <!-- inline onclick kept as fallback -->
           <button id="playBtn" class="start" type="button" onclick="startGame()">Play</button>
         </div>
       </div>
@@ -206,6 +208,7 @@
         <div id="endTitle" style="font-size:28px;font-weight:800;margin-bottom:8px">Result</div>
         <div id="endMsg" style="color:#cbd5e1;margin-bottom:14px">—</div>
         <div class="actions">
+          <!-- inline onclick kept as fallback -->
           <button id="againBtn" class="play" type="button" onclick="startGame()">Play Again</button>
           <a id="shareBtn" class="play" href="#" target="_blank" style="text-decoration:none;display:inline-block;padding:.6rem 1rem;border-radius:10px;border:0;background:#64748b;color:#0b141e;font-weight:700">Share</a>
         </div>
@@ -217,6 +220,7 @@
 
   <!-- GLOBAL PLAY STUB: always present & super-safe -->
   <script>
+    // Early-safe stub so clicks before boot get honored
     window.wantStart = false;
     window.startGame = function () { window.wantStart = true; };
   </script>
@@ -430,6 +434,4 @@
 
       function spawnPowerUp(x,y,type){ state.powerUps.push({type,x,y,r:10,t:0,taken:false}); }
       function spawnEpstone(){
-        const x=state.W*0.5, y=state.H*0.25;
-        state.epstone={ x,y,r:28,hp:20,speed:state.epSpeed,disarmed:false, knockT:0,knockVx:0,knockVy:0, batAngle:0,batSpeed:3.2,batArc:1.1,batRange:95, phase:1, orbiters:[] };
-        state.epTarget=acquireEpTarg
+        const 
