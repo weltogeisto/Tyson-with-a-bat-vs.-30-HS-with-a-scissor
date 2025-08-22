@@ -6,35 +6,139 @@
   <title>Tyson-with-a-bat-vs.-30-HS-with-a-scissor</title>
   <style>
     :root {
-      --bg:#0b1220; --panel:#0f172a; --panel2:#1e293b; --border:#334155; --text:#e5e7eb; --muted:#94a3b8;
-      --accent:#3b82f6; --emerald:#22c55e; --warn:#facc15; --danger:#ef4444; --orange:#fb923c; --epstone:#a855f7;
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#1e293b;
+      --border:#334155;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#3b82f6;
+      --emerald:#22c55e;
+      --warn:#facc15;
+      --danger:#ef4444;
+      --orange:#fb923c;
+      --epstone:#a855f7;
     }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;}
-    .wrap{position:relative;height:92vh;min-height:560px;display:flex;align-items:center;justify-content:center;user-select:none;}
-    canvas{border:1px solid var(--border);border-radius:12px;touch-action:none;background:#07101f;}
-    .hud{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:8px;}
-    .card{background:rgba(15,23,42,.7);backdrop-filter:blur(6px);border-radius:12px;padding:8px 12px;box-shadow:0 6px 18px rgba(0,0,0,.25);}
-    .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;}
-    .tile{background:rgba(15,23,42,.7);border-radius:10px;padding:8px 10px;}
-    .muted{font-size:12px;color:var(--muted);} .big{font-weight:700;font-size:20px;}
-    .controls{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
-    .row{display:flex;gap:8px;align-items:center;}
-    select,button,input[type="checkbox"]{background:rgba(15,23,42,.8);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-weight:600;}
-    label.switch{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:rgba(15,23,42,.6);border:1px solid var(--border);padding:6px 10px;border-radius:10px;}
-    button.start{background:var(--emerald);color:var(--bg);border:0;} button.reset{background:#fbbf24;color:#111827;border:0;} button.play{background:#38bdf8;color:#0b141e;border:0;}
-    .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
-    .panel{max-width:740px;background:rgba(15,23,42,.88);border:1px solid var(--border);border-radius:18px;padding:20px;text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.35);}
-    .panel .actions{display:flex;gap:10px;justify-content:center;margin-top:10px;}
-    .hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:var(--muted);font-size:12px;background:rgba(2,6,23,.6);padding:6px 10px;border-radius:999px;}
-    .hide{display:none;}
-    .hud,.controls{z-index:10;} .overlay{z-index:50;}
+    html,body {
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    }
+    .wrap {
+      position:relative;
+      height:92vh;
+      min-height:560px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+    }
+    canvas {
+      border:1px solid var(--border);
+      border-radius:12px;
+      touch-action:none;
+      background:#07101f;
+    }
+    .hud {
+      position:absolute;
+      top:12px;
+      left:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .card {
+      background:rgba(15,23,42,.7);
+      backdrop-filter:blur(6px);
+      border-radius:12px;
+      padding:8px 12px;
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
+    }
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      gap:8px;
+    }
+    .tile { background:rgba(15,23,42,.7); border-radius:10px; padding:8px 10px; }
+    .muted { font-size:12px; color:var(--muted); }
+    .big { font-weight:700; font-size:20px; }
+
+    .controls {
+      position:absolute;
+      top:12px;
+      right:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-end;
+    }
+    .row { display:flex; gap:8px; align-items:center; }
+    select,button,input[type="checkbox"] {
+      background:rgba(15,23,42,.8);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      font-weight:600;
+    }
+    label.switch { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); background:rgba(15,23,42,.6); border:1px solid var(--border); padding:6px 10px; border-radius:10px; }
+    button.start { background:var(--emerald); color:var(--bg); border:0; }
+    button.reset { background:#fbbf24; color:#111827; border:0; }
+    button.play { background:#38bdf8; color:#0b141e; border:0; }
+
+    .overlay {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .panel {
+      max-width:740px;
+      background:rgba(15,23,42,.88);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:20px;
+      text-align:center;
+      box-shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    .panel .actions { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+    .hint {
+      position:absolute;
+      bottom:8px;
+      left:50%;
+      transform:translateX(-50%);
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(2,6,23,.6);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+    .hide { display:none; }
+
+    .hud, .controls { z-index:10; }
+    .overlay { z-index:50; }
+
+    /* Countdown styles */
+    .countNum {
+      font-size:64px;
+      font-weight:900;
+      letter-spacing:0.03em;
+      margin:0.2rem 0 0.25rem;
+    }
+    .countSub {
+      color:#cbd5e1;
+      margin:0 0 0.6rem;
+    }
   </style>
 </head>
 <body>
   <div class="wrap" id="wrap">
     <canvas id="game"></canvas>
 
-    <!-- ERROR OVERLAY -->
+    <!-- ERROR OVERLAY (shows script errors even on mobile) -->
     <div id="errOverlay" class="overlay hide">
       <div class="panel">
         <div style="font-weight:800;font-size:20px;margin-bottom:6px">Script error</div>
@@ -61,7 +165,7 @@
 
     <!-- Controls -->
     <div class="controls">
-      <div class="row card" style="gap:12px;align-items:center;">
+      <div class="row card" style="gap:12px; align-items:center;">
         <span class="muted">Difficulty</span>
         <select id="diff">
           <option value="1">Easy (24)</option>
@@ -72,41 +176,20 @@
         <label class="switch"><input id="mute" type="checkbox" /> Mute</label>
       </div>
       <div class="row">
-        <!-- inline onclick kept as fallback -->
-        <button class="start" id="startBtn" type="button" onclick="startGame()">Start</button>
-        <button class="reset" id="resetBtn" type="button">Reset</button>
+        <button class="play" id="restartBtn" type="button">Restart (reload)</button>
+        <button class="reset" id="resetBtn" type="button">Reset (in-place)</button>
       </div>
     </div>
 
-    <!-- Start overlay -->
+    <!-- Start overlay with countdown -->
     <div class="overlay" id="startOverlay">
       <div class="panel">
-        <h1 style="margin:.2rem 0 0.6rem;font-size:26px">Tyson-with-a-bat-vs.-30-HS-with-a-scissor</h1>
-        <p style="margin:0 0 12px;color:#cbd5e1">
+        <h1 class="countNum" id="countNum">3</h1>
+        <div class="countSub" id="countLabel">Starting in…</div>
+        <p style="margin:0 0 12px; color:#cbd5e1">
           Kite the swarm, use desks as choke points, and time your bat swing.<br>
-          Elites can drop a <span style="color:var(--warn);font-weight:700">Flame Bat</span> power-up. After 10 kills, beware: a massive purple Epstone will enter the fray!
+          Elites can drop a <span style="color:var(--warn);font-weight:700">Flame Bat</span>. After 10 kills, beware: a massive purple Epstone will enter the fray!
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left">
-          <div class="tile">
-            <div style="font-weight:700;margin-bottom:6px">Desktop</div>
-            <ul style="margin:0;padding-left:18px;color:#cbd5e1;font-size:14px;line-height:1.35">
-              <li>Move: WASD / Arrows</li>
-              <li>Aim: Mouse</li>
-              <li>Swing: Click or Space</li>
-            </ul>
-          </div>
-          <div class="tile">
-            <div style="font-weight:700;margin-bottom:6px">Mobile</div>
-            <ul style="margin:0;padding-left:18px;color:#cbd5e1;font-size:14px;line-height:1.35">
-              <li>Left half: virtual joystick</li>
-              <li>Right half: aim; tap to swing</li>
-            </ul>
-          </div>
-        </div>
-        <div class="actions">
-          <!-- inline onclick kept as fallback -->
-          <button id="playBtn" class="start" type="button" onclick="startGame()">Play</button>
-        </div>
       </div>
     </div>
 
@@ -116,8 +199,7 @@
         <div id="endTitle" style="font-size:28px;font-weight:800;margin-bottom:8px">Result</div>
         <div id="endMsg" style="color:#cbd5e1;margin-bottom:14px">—</div>
         <div class="actions">
-          <!-- inline onclick kept as fallback -->
-          <button id="againBtn" class="play" type="button" onclick="startGame()">Play Again</button>
+          <button id="againBtn" class="play" type="button">Restart (reload)</button>
           <a id="shareBtn" class="play" href="#" target="_blank" style="text-decoration:none;display:inline-block;padding:.6rem 1rem;border-radius:10px;border:0;background:#64748b;color:#0b141e;font-weight:700">Share</a>
         </div>
       </div>
@@ -126,7 +208,7 @@
     <div class="hint">Tip: Strike as the front ranks touch your arc. Elites drop flames — grab them for wider, hotter swings. Outscore Epstone to avoid a final showdown!</div>
   </div>
 
-  <!-- Early-safe stub so clicks before boot get honored -->
+  <!-- Early-safe stub (kept harmless) -->
   <script>
     window.wantStart = false;
     window.startGame = function () { window.wantStart = true; };
@@ -139,22 +221,17 @@
       const canvas=document.getElementById('game');
       const ctx=canvas.getContext('2d');
 
-      /* ==== Error overlay ==== */
+      // Error overlay (shows boot errors)
       const errOverlay=document.getElementById('errOverlay');
       const errMsg=document.getElementById('errMsg');
       function showErr(msg){ if(errOverlay&&errMsg){ errMsg.textContent=String(msg); errOverlay.classList.remove('hide'); } }
       window.addEventListener('error', e => showErr(e.error?.stack||e.message||e));
       window.addEventListener('unhandledrejection', e => showErr(e.reason?.stack||e.reason||e));
 
-      /* ==== SAFE STORAGE (fixes SecurityError) ==== */
+      /* ===== Safe localStorage (prevents iframe/mobile SecurityError) ===== */
       const storage = (() => {
-        try {
-          const t='__ty_test__';
-          window.localStorage.setItem(t,'1'); window.localStorage.removeItem(t);
-          return window.localStorage;
-        } catch (e) {
-          return {getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
-        }
+        try { const t='__t__'; localStorage.setItem(t,'1'); localStorage.removeItem(t); return localStorage; }
+        catch { return {getItem:()=>null,setItem:()=>{},removeItem:()=>{}}; }
       })();
 
       /* ===== Utilities ===== */
@@ -169,7 +246,8 @@
         return Math.abs(diff)<=arc*0.5;
       }
       function circleRectCollide(c,r){
-        const nx=clamp(c.x,r.x,r.x+r.w), ny=clamp(c.y,r.y,r.y+r.h);
+        const nx=clamp(c.x,r.x,r.x+r.w);
+        const ny=clamp(c.y,r.y,r.y+r.h);
         const dx=c.x-nx,dy=c.y-ny;
         return dx*dx+dy*dy<c.r*c.r;
       }
@@ -195,6 +273,10 @@
       const endMsg=document.getElementById('endMsg');
       const resetBtn=document.getElementById('resetBtn');
       const shareBtn=document.getElementById('shareBtn');
+      const restartBtn=document.getElementById('restartBtn');
+      const againBtn=document.getElementById('againBtn');
+      const countNum=document.getElementById('countNum');
+      const countLabel=document.getElementById('countLabel');
 
       /* ===== Audio (defensive) ===== */
       let audioCtx=null, masterGain=null, musicGain=null, musicOsc=null;
@@ -204,7 +286,7 @@
           audioCtx=new (window.AudioContext||window.webkitAudioContext)();
           masterGain=audioCtx.createGain(); masterGain.gain.value=0.12; masterGain.connect(audioCtx.destination);
           musicGain=audioCtx.createGain(); musicGain.gain.value=0.05; musicGain.connect(masterGain);
-        }catch(e){ /* no-op: audio disabled */ }
+        }catch(e){ /* audio disabled */ }
       }
       function sfx(freq=440, dur=0.06, type='square', vol=0.25){
         if(!audioCtx || muteChk.checked) return;
@@ -223,8 +305,11 @@
         if(!audioCtx) return;
         if(on){
           if(musicOsc) return;
-          musicOsc=audioCtx.createOscillator(); musicOsc.type='triangle'; musicOsc.frequency.value=90;
-          musicOsc.connect(musicGain); musicOsc.start();
+          musicOsc=audioCtx.createOscillator();
+          musicOsc.type='triangle';
+          musicOsc.frequency.value=90;
+          musicOsc.connect(musicGain);
+          musicOsc.start();
         } else { try{ musicOsc&&musicOsc.stop(); }catch(e){} musicOsc=null; }
       }
 
@@ -333,7 +418,7 @@
         const enemies=[];
         const spawnR=Math.min(W,H)*0.42;
         for(let i=0;i<enemyCount;i++){ const a=i/enemyCount*Math.PI*2; const x=W*0.5+Math.cos(a)*spawnR; const y=H*0.45+Math.sin(a)*spawnR*0.7; enemies.push({x,y,r:14,speed:enemySpeed,hp:1,elite:false,disarmed:false,knockT:0,knockVx:0,knockVy:0,touchCd:0,speedMul:1}); }
-        /* 5 Olga elites (blue/white, +1 HP, slightly slower, bigger) */
+        /* 5 elite Olgas (blue/white, +1 HP, slower, bigger) */
         const buffCount=Math.min(5,enemies.length);
         const picks=new Set(); while(picks.size<buffCount) picks.add(Math.floor(Math.random()*enemies.length));
         for(const idx of picks){ const e=enemies[idx]; e.elite=true; e.hp=2; e.r=18; e.speed=Math.round(e.speed*0.85); }
@@ -354,7 +439,8 @@
 
       function start(){
         running=true; last=performance.now(); hide(startOverlay); cancelAnimationFrame(animId); animId=requestAnimationFrame(loop);
-        ensureAudio(); toggleMusic(!muteChk.checked);
+        // Only start music after interaction if needed — safe to skip on autoplay-restricted browsers
+        // ensureAudio(); toggleMusic(!muteChk.checked);
       }
       function stop(win){
         running=false; toggleMusic(false);
@@ -366,7 +452,7 @@
         shareBtn.href='https://twitter.com/intent/tweet?text='+txt;
         show(endOverlay);
       }
-      function reset(){ createGame(); draw(); }
+      function reset(){ createGame(); draw(); runCountdown(); }
 
       /* Clones */
       function spawnClone(){ const c={x:state.player.x,y:state.player.y,r:10,speed:200,life:10}; state.clones.push(c); }
@@ -555,6 +641,27 @@
         animId=requestAnimationFrame(loop);
       }
 
+      /* ===== Countdown + boot ===== */
+      function runCountdown(){
+        show(startOverlay);
+        // Pick integer 1–3 seconds
+        let remaining = 1 + Math.floor(Math.random()*3);
+        countNum.textContent = String(remaining);
+        countLabel.textContent = 'Starting in…';
+
+        const tick = () => {
+          remaining -= 1;
+          if(remaining <= 0){
+            hide(startOverlay);
+            start();
+          } else {
+            countNum.textContent = String(remaining);
+            setTimeout(tick, 1000);
+          }
+        };
+        setTimeout(tick, 1000);
+      }
+
       /* Listeners */
       window.addEventListener('keydown',(e)=>{ ensureAudio(); const k=e.key.toLowerCase(); if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) keys.add(k); if(k===' '){ e.preventDefault(); trySwing(); } });
       window.addEventListener('keyup',(e)=>{ keys.delete(e.key.toLowerCase()); });
@@ -570,27 +677,19 @@
       if(resetBtn) resetBtn.addEventListener('click', reset);
       if(diffSel)  diffSel.addEventListener('change', ()=>{ createGame(); draw(); });
       if(muteChk)  muteChk.addEventListener('change', ()=>{ if(muteChk.checked) toggleMusic(false); else { ensureAudio(); toggleMusic(true);} });
+      if(restartBtn) restartBtn.addEventListener('click', ()=>location.reload());
+      if(againBtn)   againBtn.addEventListener('click', ()=>location.reload());
 
-      /* ---- Install the REAL starter and honor early clicks ---- */
-      function internalStart(){ createGame(); start(); }
-      window.startGame = internalStart;
-      if(window.wantStart){ window.wantStart=false; internalStart(); }
-
-      /* ---- CSP-safe button listeners ---- */
-      const playBtn = document.getElementById('playBtn');
-      const startBtn = document.getElementById('startBtn');
-      const againBtn = document.getElementById('againBtn');
-      const safeStart = (e)=>{ e?.preventDefault?.(); window.startGame && window.startGame(); };
-      [playBtn, startBtn, againBtn].forEach(btn=>{
-        if(!btn) return;
-        btn.addEventListener('click', safeStart);
-        btn.addEventListener('touchend', safeStart, {passive:false});
-      });
+      /* Install no-op startGame (not used now) */
+      window.startGame = ()=>{}; // countdown will auto-start
 
       /* Boot */
+      function resize(){ const dpr=window.devicePixelRatio||1; const w=Math.min(wrap.clientWidth,1100); const h=Math.min(Math.max(wrap.clientHeight,560),820); canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr); canvas.style.width=w+'px'; canvas.style.height=h+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); if(state) draw(); }
+      window.addEventListener('resize',resize);
       resize();
       createGame();
       bestEl.textContent = highScore;
+      runCountdown();
     })();
   });
   </script>
