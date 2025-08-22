@@ -125,6 +125,33 @@
     }
     .hide { display:none; }
   </style>
+  .hud {
+    position:absolute;
+    top:12px;
+    left:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .controls {
+    position:absolute;
+    top:12px;
+    right:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .overlay {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  …
+  </style>
 </head>
 <body>
   <div class="wrap" id="wrap">
