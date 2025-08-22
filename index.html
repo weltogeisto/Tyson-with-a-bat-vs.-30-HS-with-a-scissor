@@ -138,7 +138,6 @@
   <div class="wrap" id="wrap">
     <canvas id="game"></canvas>
 
-    <!-- ERROR OVERLAY (shows script errors even on mobile) -->
     <div id="errOverlay" class="overlay hide">
       <div class="panel">
         <div style="font-weight:800;font-size:20px;margin-bottom:6px">Script error</div>
@@ -146,7 +145,6 @@
       </div>
     </div>
 
-    <!-- HUD -->
     <div class="hud">
       <div class="card">
         <div class="muted" style="text-transform:uppercase;letter-spacing:.08em">Mode</div>
@@ -163,7 +161,6 @@
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="controls">
       <div class="row card" style="gap:12px; align-items:center;">
         <span class="muted">Difficulty</span>
@@ -181,7 +178,6 @@
       </div>
     </div>
 
-    <!-- Start overlay with countdown -->
     <div class="overlay" id="startOverlay">
       <div class="panel">
         <h1 class="countNum" id="countNum">3</h1>
@@ -193,13 +189,12 @@
       </div>
     </div>
 
-    <!-- End overlay -->
     <div class="overlay hide" id="endOverlay">
       <div class="panel">
         <div id="endTitle" style="font-size:28px;font-weight:800;margin-bottom:8px">Result</div>
         <div id="endMsg" style="color:#cbd5e1;margin-bottom:14px">—</div>
         <div class="actions">
-          <button id="againBtn" class="play" type="button">Restart (reload)</button>
+          <button id="againBtn" class="play" type="button">Play Again</button>
           <a id="shareBtn" class="play" href="#" target="_blank" style="text-decoration:none;display:inline-block;padding:.6rem 1rem;border-radius:10px;border:0;background:#64748b;color:#0b141e;font-weight:700">Share</a>
         </div>
       </div>
@@ -208,7 +203,6 @@
     <div class="hint">Tip: Strike as the front ranks touch your arc. Elites drop flames — grab them for wider, hotter swings. Outscore Epstone to avoid a final showdown!</div>
   </div>
 
-  <!-- Early-safe stub (kept harmless) -->
   <script>
     window.wantStart = false;
     window.startGame = function () { window.wantStart = true; };
@@ -440,258 +434,4 @@
       function start(){
         running=true; last=performance.now(); hide(startOverlay); cancelAnimationFrame(animId); animId=requestAnimationFrame(loop);
         // Only start music after interaction if needed — safe to skip on autoplay-restricted browsers
-        // ensureAudio(); toggleMusic(!muteChk.checked);
-      }
-      function stop(win){
-        running=false; toggleMusic(false);
-        endTitle.textContent= win ? 'You kept control!' : 'Overrun!';
-        endMsg.textContent = win ? `Score: ${state.score} • Time: ${Math.floor(state.t)}s • Kills (You/Ep): ${state.playerKills}/${state.epKills}` : `Use desks to funnel the swarm. Time swings through the thickest part.`;
-        if(state.score>highScore){ highScore=state.score; storage.setItem('tyson_highscore',String(highScore)); fanfare(); }
-        bestEl.textContent=highScore;
-        const txt=encodeURIComponent(`I scored ${state.score} in Tyson vs HS! (${state.playerKills} KOs) #TysonBat #CanvasGame`);
-        shareBtn.href='https://twitter.com/intent/tweet?text='+txt;
-        show(endOverlay);
-      }
-      function reset(){ createGame(); draw(); runCountdown(); }
-
-      /* Clones */
-      function spawnClone(){ const c={x:state.player.x,y:state.player.y,r:10,speed:200,life:10}; state.clones.push(c); }
-      function updateClones(dt){
-        const alive=[];
-        for(const c of state.clones){
-          c.life-=dt;
-          let best=null,bestD2=Infinity;
-          for(const e of state.enemies){ const dx=e.x-c.x,dy=e.y-c.y,d2=dx*dx+dy*dy; if(d2<bestD2){best=e;bestD2=d2;} }
-          if(best){ const [nx,ny]=norm(best.x-c.x,best.y-c.y); c.x+=nx*c.speed*dt; c.y+=ny*c.speed*dt; const er=best.r*(state.player.power.shrinkT>0?0.6:1); const dx=best.x-c.x,dy=best.y-c.y; if(dx*dx+dy*dy<(er+c.r)*(er+c.r)){ best.hp-=1; spawnConfetti(best.x,best.y,10); if(best.hp<=0){ best.disarmed=true; state.score+=80; state.playerKills++; addTaunt(best.x,best.y-10); addShake(0.1); } } }
-          if(c.life>0) alive.push(c);
-        }
-        state.clones=alive;
-      }
-
-      function trySwing(){ const p=state.player; if(p.swing.active||p.swing.cooldown>0) return; p.swing.active=true; p.swing.t=0; thwack(); }
-
-      /* Input */
-      function handleInput(dt){
-        const p=state.player; let vx=0,vy=0;
-        if(keys.has('ArrowLeft')||keys.has('a')) vx-=1;
-        if(keys.has('ArrowRight')||keys.has('d')) vx+=1;
-        if(keys.has('ArrowUp')||keys.has('w')) vy-=1;
-        if(keys.has('ArrowDown')||keys.has('s')) vy+=1;
-        if(touch.left){ const {start,cur}=touch.left; const dx=cur.x-start.x,dy=cur.y-start.y; const [nx,ny]=norm(dx,dy); const mag=Math.min(1,len(dx,dy)/48); vx+=nx*mag; vy+=ny*mag; }
-        const [nx,ny]=norm(vx,vy); p.x+=nx*p.speed*dt; p.y+=ny*p.speed*dt;
-        const margin=state.room.margin+p.r; p.x=clamp(p.x,margin,state.W-margin); p.y=clamp(p.y,margin,state.H-margin);
-        const pc={x:p.x,y:p.y,r:p.r};
-        for(const r of state.obstacles){ if(circleRectCollide(pc,r)){ const cx=clamp(pc.x,r.x,r.x+r.w), cy=clamp(pc.y,r.y,r.y+r.h); const dx=pc.x-cx,dy=pc.y-cy; if(Math.abs(dx)>Math.abs(dy)) p.y+=Math.sign(dy)*(pc.r-Math.abs(dy)+0.1); else p.x+=Math.sign(dx)*(pc.r-Math.abs(dx)+0.1); pc.x=p.x; pc.y=p.y; } }
-        if(touch.right){ const {center,cur}=touch.right; p.aim=Math.atan2(cur.y-center.y,cur.x-center.x); } else { const rect=canvas.getBoundingClientRect(); const mx=mouse.x-rect.left,my=mouse.y-rect.top; p.aim=Math.atan2(my-p.y,mx-p.x); }
-        if(p.swing.cooldown>0) p.swing.cooldown=Math.max(0,p.swing.cooldown-dt);
-        if(p.swing.active){ p.swing.t+=dt; if(p.swing.t>=p.swing.duration){ p.swing.active=false; p.swing.t=0; p.swing.cooldown=0.18; } }
-      }
-
-      /* Update */
-      function update(dt){
-        state.t+=dt;
-        const p=state.player;
-        if(p.power.flameT>0) p.power.flameT=Math.max(0,p.power.flameT-dt);
-        if(p.power.shrinkT>0) p.power.shrinkT=Math.max(0,p.power.shrinkT-dt);
-        if(p.iFrames>0) p.iFrames=Math.max(0,p.iFrames-dt);
-
-        state.crazy=!!crazyChk.checked; state.nextWildIn-=dt; if(state.crazy && state.nextWildIn<=0) triggerWildEvent();
-        const newTimers=[]; for(const tmr of state.wildTimers){ tmr.t-=dt; if(tmr.t>0) newTimers.push(tmr); else if(tmr.type==='speedReset'){ state.enemies.forEach(e=>e.speedMul=1); } } state.wildTimers=newTimers;
-
-        if(!state.epstone && state.playerKills>=10) spawnEpstone();
-
-        for(const e of state.enemies){
-          if(e.disarmed) continue;
-          const er=e.r*(p.power.shrinkT>0?0.6:1);
-          if(e.knockT>0){ e.x+=e.knockVx*dt; e.y+=e.knockVy*dt; e.knockT-=dt; }
-          else { const [nx,ny]=norm(p.x-e.x,p.y-e.y); e.x+=nx*(e.speed*(e.speedMul||1))*dt; e.y+=ny*(e.speed*(e.speedMul||1))*dt; }
-          const cc={x:e.x,y:e.y,r:er};
-          for(const r of state.obstacles){ if(circleRectCollide(cc,r)){ const cx=clamp(cc.x,r.x,r.x+r.w), cy=clamp(cc.y,r.y,r.y+r.h); const dx=cc.x-cx,dy=cc.y-cy; if(Math.abs(dx)>Math.abs(dy)) e.y+=Math.sign(dy)*(cc.r-Math.abs(dy)+0.1); else e.x+=Math.sign(dx)*(cc.r-Math.abs(dx)+0.1); cc.x=e.x; cc.y=e.y; } }
-          if(e.touchCd>0) e.touchCd-=dt;
-          const dx=e.x-p.x,dy=e.y-p.y;
-          if(dx*dx+dy*dy<(er+p.r)*(er+p.r)){ if(e.touchCd<=0 && p.iFrames<=0){ p.hp-=1; p.iFrames=1.2; e.touchCd=0.7; addShake(0.18); snip(); if(p.hp<=0){ updateHUD(); stop(false); return; } } }
-        }
-
-        /* Meteors */
-        const aliveM=[]; for(const m of state.meteors){ m.y+=m.vy*dt; m.t-=dt;
-          for(const e of state.enemies){ if(e.disarmed) continue; const er=e.r*(p.power.shrinkT>0?0.6:1); if(e.x>m.x-m.w && e.x<m.x+m.w && e.y>m.y-m.h && e.y<m.y+m.h){ e.hp=0; e.disarmed=true; state.playerKills++; state.score+=50; spawnConfetti(e.x,e.y,12); addTaunt(e.x,e.y-10); } }
-          if(p.x>m.x-m.w && p.x<m.x+m.w && p.y>m.y-m.h && p.y<m.y+m.h){ if(p.iFrames<=0){ p.hp-=1; p.iFrames=1.0; addShake(0.25); } }
-          if(m.y<state.H+60 && m.t>0) aliveM.push(m);
-        } state.meteors=aliveM;
-
-        /* Epstone */
-        if(state.epstone && !state.epstone.disarmed){
-          const ep=state.epstone;
-          if(ep.phase===1 && ep.hp<=12){ ep.phase=2; state.epPhase=2; ep.batSpeed=3.8; ep.batArc=1.25; ep.orbiters=[]; for(let i=0;i<4;i++) ep.orbiters.push({ang:i*Math.PI/2,rad:ep.batRange*0.7}); }
-          epRetargetTimer-=dt; if(epRetargetTimer<=0){ epRetargetTimer=0.35; state.epTarget=acquireEpTarget()||{x:state.W*0.5,y:state.H*0.5,type:'center'}; }
-          if(ep.knockT>0){ ep.x+=ep.knockVx*dt; ep.y+=ep.knockVy*dt; ep.knockT-=dt; } else { steerEpstoneToward(state.epTarget,dt); }
-          const cc={x:ep.x,y:ep.y,r:ep.r};
-          for(const r of state.obstacles){ if(circleRectCollide(cc,r)){ const cx=clamp(cc.x,r.x,r.x+r.w), cy=clamp(cc.y,r.y,r.y+r.h); const dx=cc.x-cx,dy=cc.y-cy; if(Math.abs(dx)>Math.abs(dy)) ep.y+=Math.sign(dy)*(cc.r-Math.abs(dy)+0.1); else ep.x+=Math.sign(dx)*(cc.r-Math.abs(dx)+0.1); cc.x=ep.x; cc.y=ep.y; } }
-          ep.batAngle=(ep.batAngle+ep.batSpeed*dt)%(Math.PI*2);
-          for(const e of state.enemies){ if(e.disarmed) continue; if(withinArc(e.x,e.y,ep.x,ep.y,ep.batAngle,ep.batArc,ep.batRange)){ e.hp-=1; if(e.hp<=0){ e.disarmed=true; state.epKills++; addShake(0.12); spawnConfetti(e.x,e.y,10); } else { const [nx,ny]=norm(e.x-ep.x,e.y-ep.y); e.knockVx=nx*220; e.knockVy=ny*220; e.knockT=0.1; } } }
-          if(ep.phase>=2){ for(const o of ep.orbiters){ o.ang+=2.2*dt; const ox=ep.x+Math.cos(o.ang)*o.rad, oy=ep.y+Math.sin(o.ang)*o.rad; const dx=ox-state.player.x,dy=oy-state.player.y; if(dx*dx+dy*dy<(state.player.r+10)*(state.player.r+10)){ if(state.player.iFrames<=0){ state.player.hp-=1; state.player.iFrames=1.0; addShake(0.2); } } for(const e of state.enemies){ if(e.disarmed) continue; const ex=ox-e.x,ey=oy-e.y; const er=e.r*(state.player.power.shrinkT>0?0.6:1); if(ex*ex+ey*ey<(er+8)*(er+8)){ e.hp-=1; if(e.hp<=0){ e.disarmed=true; state.epKills++; spawnConfetti(e.x,e.y,8); } } } }
-          if(withinArc(p.x,p.y,ep.x,ep.y,ep.batAngle,ep.batArc,ep.batRange+p.r)){ if(p.iFrames<=0){ p.hp-=1; p.iFrames=1.0; addShake(0.18); if(p.hp<=0){ updateHUD(); stop(false); return; } } }
-        }
-
-        /* Player swing */
-        if(p.swing.active){
-          const prog=p.swing.t/p.swing.duration, base=p.aim-p.swing.arc*0.5, cur=base+p.swing.arc*prog, flame=p.power.flameT>0;
-          for(const e of state.enemies){
-            if(e.disarmed) continue;
-            const direct=withinArc(e.x,e.y,p.x,p.y,cur,0.55,p.swing.range);
-            const splash=flame && !direct && withinArc(e.x,e.y,p.x,p.y,cur,1.2,p.swing.range+10);
-            if(direct||splash){
-              e.hp-=1; spawnConfetti(e.x,e.y,8);
-              if(e.hp<=0){
-                e.disarmed=true; state.score+=100; state.playerKills++; addShake(0.12); addTaunt(e.x,e.y-10);
-                if(e.elite && Math.random()<0.6){ const kinds=['flame','shrink','clone']; spawnPowerUp(e.x,e.y,kinds[Math.floor(Math.random()*kinds.length)]); }
-              } else { const [nx,ny]=norm(e.x-p.x,e.y-p.y); const k=direct?260:200; e.knockVx=nx*k; e.knockVy=ny*k; e.knockT=direct?0.12:0.10; }
-            }
-          }
-          if(state.epstone && !state.epstone.disarmed){
-            const ep=state.epstone;
-            const hit=withinArc(ep.x,ep.y,p.x,p.y,cur,0.55,p.swing.range);
-            const glance=flame && !hit && withinArc(ep.x,ep.y,p.x,p.y,cur,1.2,p.swing.range+10);
-            if(hit||glance){
-              ep.hp-=1; addShake(0.08); spawnConfetti(ep.x,ep.y,6);
-              if(ep.hp<=0){ ep.disarmed=true; state.score+=500; addShake(0.2); spawnConfetti(ep.x,ep.y,30); }
-              else { const [nx,ny]=norm(ep.x-p.x,ep.y-p.y); const k=hit?240:200; ep.knockVx=nx*k; ep.knockVy=ny*k; ep.knockT=0.15; }
-            }
-          }
-        }
-
-        /* Power-ups */
-        for(const pu of state.powerUps){ if(pu.taken) continue; pu.t+=dt; const dx=pu.x-p.x,dy=pu.y-p.y; if(dx*dx+dy*dy<(pu.r+p.r)*(pu.r+p.r)){ pu.taken=true; coin(); if(pu.type==='flame') p.power.flameT=Math.max(p.power.flameT,10); if(pu.type==='shrink') p.power.shrinkT=Math.max(p.power.shrinkT,8); if(pu.type==='clone') spawnClone(); } }
-        state.powerUps=state.powerUps.filter(pu=>!pu.taken);
-
-        state.enemies=state.enemies.filter(e=>!e.disarmed);
-        state.shake=Math.max(0,state.shake-dt*4);
-        updateParticles(); updateFloats(); updateClones(dt);
-
-        if(state.enemies.length===0){
-          if(state.epstone){ if(state.epstone.disarmed || state.epKills<=state.playerKills){ updateHUD(); stop(true); return; } }
-          else { updateHUD(); stop(true); return; }
-        }
-        updateHUD();
-      }
-
-      /* Draw */
-      function draw(){
-        if(!state) return; const {W,H}=state;
-        ctx.clearRect(0,0,W,H);
-        ctx.save(); if(state.shake>0) ctx.translate(randRange(-1,1)*state.shake*6,randRange(-1,1)*state.shake*6);
-
-        const hue=(state.epPhase>=2)?((Date.now()/20)%360):215;
-        ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,W,H);
-        ctx.strokeStyle=`hsl(${hue},35%,22%)`; ctx.lineWidth=1;
-        for(let x=20;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-        for(let y=20;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-
-        ctx.strokeStyle='#3b82f6'; ctx.lineWidth=3; ctx.strokeRect(state.room.margin,state.room.margin,W-state.room.margin*2,H-state.room.margin*2);
-
-        ctx.fillStyle='#1e293b'; ctx.strokeStyle='#475569'; ctx.lineWidth=2;
-        for(const r of state.obstacles){ ctx.fillRect(r.x,r.y,r.w,r.h); ctx.strokeRect(r.x,r.y,r.w,r.h); }
-
-        ctx.fillStyle='#fb923c'; for(const m of state.meteors){ ctx.fillRect(m.x-m.w/2,m.y-m.h/2,m.w,m.h); }
-
-        for(const pu of state.powerUps){ const bob=Math.sin(pu.t*4)*4; ctx.beginPath(); ctx.arc(pu.x,pu.y+bob,pu.r,0,Math.PI*2); ctx.fillStyle=(pu.type==='flame')?'#f59e0b':(pu.type==='shrink'?'#34d399':'#93c5fd'); ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle='#fde68a'; ctx.stroke(); }
-
-        drawParticles(); drawFloats();
-
-        for(const c of state.clones){ ctx.beginPath(); ctx.arc(c.x,c.y,c.r,0,Math.PI*2); ctx.fillStyle='#60a5fa'; ctx.fill(); ctx.strokeStyle='#1d4ed8'; ctx.lineWidth=2; ctx.stroke(); }
-
-        for(const e of state.enemies){
-          const er=e.r*(state.player.power.shrinkT>0?0.6:1);
-          if(e.elite){ const grd=ctx.createRadialGradient(e.x-4,e.y-4,4,e.x,e.y,er+2); grd.addColorStop(0,'#e0f2fe'); grd.addColorStop(1,'#60a5fa'); ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(e.x,e.y,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#e2e8f0'; ctx.stroke(); }
-          else { ctx.fillStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(e.x,e.y,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#334155'; ctx.stroke(); }
-        }
-
-        if(state.epstone){
-          const ep=state.epstone;
-          ctx.save(); ctx.shadowBlur=18; ctx.shadowColor='#a855f7'; ctx.fillStyle='rgba(168,85,247,0.9)'; ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
-          ctx.lineWidth=3; ctx.strokeStyle='#6d28d9'; ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r,0,Math.PI*2); ctx.stroke();
-          ctx.save(); ctx.translate(ep.x,ep.y); ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,ep.batRange,ep.batAngle-ep.batArc/2,ep.batAngle+ep.batArc/2); ctx.closePath(); ctx.fillStyle='rgba(168,85,247,0.25)'; ctx.fill(); ctx.restore();
-          if(ep.phase>=2){ for(const o of ep.orbiters){ const ox=ep.x+Math.cos(o.ang)*o.rad, oy=ep.y+Math.sin(o.ang)*o.rad; ctx.beginPath(); ctx.arc(ox,oy,8,0,Math.PI*2); ctx.fillStyle='#a78bfa'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#6d28d9'; ctx.stroke(); } }
-        }
-
-        const p=state.player;
-        if(p.power.flameT>0){ ctx.save(); ctx.shadowBlur=10; ctx.shadowColor='#facc15'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+10,0,Math.PI*2); ctx.strokeStyle='#facc15'; ctx.lineWidth=3; ctx.stroke(); ctx.restore(); }
-        if(p.power.shrinkT>0){ ctx.save(); ctx.globalAlpha=.35; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+16,0,Math.PI*2); ctx.fillStyle='#34d399'; ctx.fill(); ctx.globalAlpha=1; ctx.restore(); }
-        if(p.swing.active){ const prog=p.swing.t/p.swing.duration, start=p.aim-p.swing.arc*0.5, cur=start+p.swing.arc*prog; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.arc(p.x,p.y,p.swing.range,start,cur); ctx.closePath(); ctx.fillStyle='rgba(250,204,21,0.25)'; ctx.fill(); }
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle='#22c55e'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#065f46'; ctx.stroke();
-
-        ctx.restore();
-      }
-
-      function updateHUD(){
-        hpEl.textContent=state.player.hp;
-        enemiesEl.textContent=state.enemies.length;
-        scoreEl.textContent=state.score;
-        timeEl.textContent=`${Math.floor(state.t)}s`;
-        flameEl.textContent= state.player.power.flameT>0 ? `${Math.ceil(state.player.power.flameT)}s` : (state.player.power.shrinkT>0 ? `Shrink ${Math.ceil(state.player.power.shrinkT)}s` : '0s');
-        killsEl.textContent=`${state.playerKills}/${state.epKills}`;
-        bestEl.textContent=highScore;
-      }
-
-      function loop(ts){
-        if(!running) return;
-        const dt=Math.min((ts-last)/1000,0.033);
-        last=ts;
-        handleInput(dt); update(dt); draw();
-        animId=requestAnimationFrame(loop);
-      }
-
-      /* ===== Countdown + boot ===== */
-      function runCountdown(){
-        show(startOverlay);
-        // Pick integer 1–3 seconds
-        let remaining = 1 + Math.floor(Math.random()*3);
-        countNum.textContent = String(remaining);
-        countLabel.textContent = 'Starting in…';
-
-        const tick = () => {
-          remaining -= 1;
-          if(remaining <= 0){
-            hide(startOverlay);
-            start();
-          } else {
-            countNum.textContent = String(remaining);
-            setTimeout(tick, 1000);
-          }
-        };
-        setTimeout(tick, 1000);
-      }
-
-      /* Listeners */
-      window.addEventListener('keydown',(e)=>{ ensureAudio(); const k=e.key.toLowerCase(); if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) keys.add(k); if(k===' '){ e.preventDefault(); trySwing(); } });
-      window.addEventListener('keyup',(e)=>{ keys.delete(e.key.toLowerCase()); });
-      canvas.addEventListener('mousemove',(e)=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
-      canvas.addEventListener('mousedown',()=>{ ensureAudio(); if(!muteChk.checked) thwack(); trySwing(); });
-      window.addEventListener('mouseup',()=>{ mouse.down=false; });
-
-      function canvasPos(touchEvent,t){ const rect=canvas.getBoundingClientRect(); return {x:t.clientX-rect.left,y:t.clientY-rect.top}; }
-      canvas.addEventListener('touchstart',(e)=>{ ensureAudio(); e.preventDefault(); for(const t of e.changedTouches){ const pos=canvasPos(e,t); const left=pos.x<canvas.clientWidth/2; if(left && touch.leftId===null){ touch.leftId=t.identifier; touch.left={start:pos,cur:pos}; } else if(!left && touch.rightId===null){ touch.rightId=t.identifier; touch.right={center:pos,cur:pos}; trySwing(); } } },{passive:false});
-      canvas.addEventListener('touchmove',(e)=>{ e.preventDefault(); for(const t of e.changedTouches){ const pos=canvasPos(e,t); if(t.identifier===touch.leftId && touch.left) touch.left.cur=pos; if(t.identifier===touch.rightId && touch.right) touch.right.cur=pos; } },{passive:false});
-      canvas.addEventListener('touchend',(e)=>{ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===touch.leftId){ touch.leftId=null; touch.left=null; } if(t.identifier===touch.rightId){ touch.rightId=null; touch.right=null; } } },{passive:false});
-
-      if(resetBtn) resetBtn.addEventListener('click', reset);
-      if(diffSel)  diffSel.addEventListener('change', ()=>{ createGame(); draw(); });
-      if(muteChk)  muteChk.addEventListener('change', ()=>{ if(muteChk.checked) toggleMusic(false); else { ensureAudio(); toggleMusic(true);} });
-      if(restartBtn) restartBtn.addEventListener('click', ()=>location.reload());
-      if(againBtn)   againBtn.addEventListener('click', ()=>location.reload());
-
-      /* Install no-op startGame (not used now) */
-      window.startGame = ()=>{}; // countdown will auto-start
-
-      /* Boot */
-      function resize(){ const dpr=window.devicePixelRatio||1; const w=Math.min(wrap.clientWidth,1100); const h=Math.min(Math.max(wrap.clientHeight,560),820); canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr); canvas.style.width=w+'px'; canvas.style.height=h+'px'; ctx.setTransform(dpr,0,0,dpr,0,0); if(state) draw(); }
-      window.addEventListener('resize',resize);
-      resize();
-      createGame();
-      bestEl.textContent = highScore;
-      runCountdown();
-    })();
-  });
-  </script>
-</body>
-</html>
+        // ensureAudio(); toggleMusic(!muteChk.
