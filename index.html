@@ -124,33 +124,14 @@
       border-radius:999px;
     }
     .hide { display:none; }
-  </style>
-  .hud {
-    position:absolute;
-    top:12px;
-    left:12px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-
-  .controls {
-    position:absolute;
-    top:12px;
-    right:12px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-
-  .overlay {
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  …
+    /* Fix: move these z-index rules into the style block */
+    .hud,
+    .controls {
+      z-index: 10;
+    }
+    .overlay {
+      z-index: 50;
+    }
   </style>
 </head>
 <body>
@@ -172,14 +153,7 @@
         <div class="tile"><div class="muted">Kills</div><div class="big" id="kills">0/0</div></div>
       </div>
     </div>
-.hud,
-.controls {
-  z-index: 10;
-}
 
-.overlay {
-  z-index: 50;
-}
     <!-- Controls -->
     <div class="controls">
       <div class="row card">
@@ -545,9 +519,4 @@
         ctx.strokeRect(state.room.margin,state.room.margin,W-state.room.margin*2,H-state.room.margin*2);
         // desks
         ctx.fillStyle='#1e293b'; ctx.strokeStyle='#475569'; ctx.lineWidth=2;
-        for(const r of state.obstacles){ ctx.fillRect(r.x,r.y,r.w,r.h); ctx.strokeRect(r.x,r.y,r.w,r.h); }
-        // power-ups
-        for(const pu of state.powerUps){
-          const bob=Math.sin(pu.t*6)*2;
-          if(pu.type==='flame'){
-          
+        for(const r of state.obstacles){ ctx.fillRect(r.x,r.y,r.w,r.h); ctx.strokeRect(r.x,r.y,r.w,r
