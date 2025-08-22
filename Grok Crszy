@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tyson-with-a-bat-vs.-30-HS-with-a-scissor</title>
+  <style>
+    :root {
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#1e293b;
+      --border:#334155;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#3b82f6;
+      --emerald:#22c55e;
+      --warn:#facc15;
+      --danger:#ef4444;
+      --orange:#fb923c;
+      --epstone:#a855f7;
+    }
+    html,body {
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    }
+    .wrap {
+      position:relative;
+      height:92vh;
+      min-height:560px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+    }
+    canvas {
+      border:1px solid var(--border);
+      border-radius:12px;
+      touch-action:none;
+      background:#07101f;
+    }
+    .hud {
+      position:absolute;
+      top:12px;
+      left:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .card {
+      background:rgba(15,23,42,.7);
+      backdrop-filter:blur(6px);
+      border-radius:12px;
+      padding:8px 12px;
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
+    }
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      gap:8px;
+    }
+    .tile { background:rgba(15,23,42,.7); border-radius:10px; padding:8px 10px; }
+    .muted { font-size:12px; color:var(--muted); }
+    .big { font-weight:700; font-size:20px; }
+
+    .controls {
+      position:absolute;
+      top:12px;
+      right:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-end;
+    }
+    .row { display:flex; gap:8px; align-items:center; }
+    select,button,input[type="checkbox"] {
+      background:rgba(15,23,42,.8);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      font-weight:600;
+    }
+    label.switch { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); background:rgba(15,23,42,.6); border:1px solid var(--border); padding:6px 10px; border-radius:10px; }
+    button.start { background:var(--emerald); color:var(--bg); border:0; }
+    button.reset { background:#fbbf24; color:#111827; border:0; }
+    button.play { background:#38bdf8; color:#0b141e; border:0; }
+
+    .overlay {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .panel {
+      max-width:740px;
+      background:rgba(15,23,42,.88);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:20px;
+      text-align:center;
+      box-shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    .panel .actions { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+    .hint {
+      position:absolute;
+      bottom:8px;
+      left:50%;
+      transform:translateX(-50%);
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(2,6,23,.6);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+    .hide { display:none; }
+
+    .hud, .controls { z-index:10; }
+    .overlay { z-index:50; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="card">
+        <div class="muted" style="text-transform:uppercase;letter-spacing:.08em">Mode</div>
+        <div class="big">Tyson-with-a-bat vs. 30 HS (scissors)</div>
+      </div>
+      <div class="grid">
+        <div class="tile"><div class="muted">HP</div><div class="big" id="hp">3</div></div>
+        <div class="tile"><div class="muted">Enemies</div><div class="big" id="enemies">0</div></div>
+        <div class="tile"><div class="muted">Score</div><div class="big" id="score">0</div></div>
+        <div class="tile"><div class="muted">Time</div><div class="big" id="time">0s</div></div>
+        <div class="tile"><div class="muted">Flame</div><div class="big" id="flame">0s</div></div>
+        <div class="tile"><div class="muted">Kills</div><div class="big" id="kills">0/0</div></div>
+        <div class="tile"><div class="muted">Best</div><div class="big" id="best">0</div></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="row card" style="gap:12px; align-items:center;">
+        <span class="muted">Difficulty</span>
+        <select id="diff">
+          <option value="1">Easy (24)</option>
+          <option value="2" selected>Normal (30)</option>
+          <option value="3">Hard (36)</option>
+        </select>
+        <label class="switch"><input id="crazy" type="checkbox" /> Wild Mode</label>
+        <label class="switch"><input id="mute" type="checkbox" /> Mute</label>
+      </div>
+      <div class="row">
+        <button class="start" id="startBtn" type="button">Start</button>
+        <button class="reset" id="resetBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <!-- Start overlay -->
+    <div class="overlay" id="startOverlay">
+      <div class="panel">
+        <h1 style="margin:.2rem 0 0.6rem; font-size:26px">Tyson-with-a-bat-vs.-30-HS-with-a-scissor</h1>
+        <p style="margin:0 0 12px; color:#cbd5e1">
+          Kite the swarm, use desks as choke points, and time your bat swing.<br>
+          Elites can drop a <span style="color:var(--warn);font-weight:700">Flame Bat</span> power-up. After 10 kills, beware: a massive purple Epstone will enter the fray!
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left">
+          <div class="tile">
+            <div style="font-weight:700;margin-bottom:6px">Desktop</div>
+            <ul style="margin:0;padding-left:18px;color:#cbd5e1;font-size:14px;line-height:1.35">
+              <li>Move: WASD / Arrows</li>
+              <li>Aim: Mouse</li>
+              <li>Swing: Click or Space</li>
+            </ul>
+          </div>
+          <div class="tile">
+            <div style="font-weight:700;margin-bottom:6px">Mobile</div>
+            <ul style="margin:0;padding-left:18px;color:#cbd5e1;font-size:14px;line-height:1.35">
+              <li>Left half: virtual joystick</li>
+              <li>Right half: aim; tap to swing</li>
+            </ul>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="playBtn" class="start" type="button" onclick="window.__start && window.__start()">Play</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- End overlay -->
+    <div class="overlay hide" id="endOverlay">
+      <div class="panel">
+        <div id="endTitle" style="font-size:28px;font-weight:800;margin-bottom:8px">Result</div>
+        <div id="endMsg" style="color:#cbd5e1;margin-bottom:14px">—</div>
+        <div class="actions">
+          <button id="againBtn" class="play" type="button" onclick="window.__start && window.__start()">Play Again</button>
+          <a id="shareBtn" class="play" href="#" target="_blank" style="text-decoration:none;display:inline-block;padding:.6rem 1rem;border-radius:10px;border:0;background:#64748b;color:#0b141e;font-weight:700">Share</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint">Tip: Strike as the front ranks touch your arc. Elites drop flames — grab them for wider, hotter swings. Outscore Epstone to avoid a final showdown!</div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    (function(){
+      const wrap=document.getElementById('wrap');
+      const canvas=document.getElementById('game');
+      const ctx=canvas.getContext('2d');
+
+      // ===== Utilities
+      const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+      const len=(x,y)=>Math.hypot(x,y);
+      const norm=(x,y)=>{const L=Math.hypot(x,y)||1;return[x/L,y/L];};
+      function withinArc(px,py,cx,cy,ang,arc,range){
+        const dx=px-cx,dy=py-cy,d=Math.hypot(dx,dy);
+        if(d>range) return false;
+        const a=Math.atan2(dy,dx);
+        const diff=Math.atan2(Math.sin(a-ang),Math.cos(a-ang));
+        return Math.abs(diff)<=arc*0.5;
+      }
+      function circleRectCollide(c,r){
+        const nx=clamp(c.x,r.x,r.x+r.w);
+        const ny=clamp(c.y,r.y,r.y+r.h);
+        const dx=c.x-nx,dy=c.y-ny;
+        return dx*dx+dy*dy<c.r*c.r;
+      }
+      function randRange(a,b){ return a + Math.random()*(b-a); }
+      function addShake(a){ state.shake = Math.min(1, (state.shake||0) + a); }
+      const show=(el)=>el && el.classList.remove('hide');
+      const hide=(el)=>el && el.classList.add('hide');
+
+      // ===== HUD refs
+      const hpEl=document.getElementById('hp');
+      const enemiesEl=document.getElementById('enemies');
+      const scoreEl=document.getElementById('score');
+      const timeEl=document.getElementById('time');
+      const flameEl=document.getElementById('flame');
+      const killsEl=document.getElementById('kills');
+      const bestEl=document.getElementById('best');
+      const diffSel=document.getElementById('diff');
+      const crazyChk=document.getElementById('crazy');
+      const muteChk=document.getElementById('mute');
+      const startOverlay=document.getElementById('startOverlay');
+      const endOverlay=document.getElementById('endOverlay');
+      const endTitle=document.getElementById('endTitle');
+      const endMsg=document.getElementById('endMsg');
+      const startBtn=document.getElementById('startBtn');
+      const resetBtn=document.getElementById('resetBtn');
+      const playBtn=document.getElementById('playBtn');
+      const againBtn=document.getElementById('againBtn');
+      const shareBtn=document.getElementById('shareBtn');
+
+      // ===== Audio (WebAudio tiny sfx; no external files)
+      let audioCtx=null, masterGain=null, musicGain=null;
+      let musicOsc=null, musicOn=false;
+      function ensureAudio(){
+        if(audioCtx) return;
+        audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+        masterGain=audioCtx.createGain(); masterGain.gain.value=0.12; masterGain.connect(audioCtx.destination);
+        musicGain=audioCtx.createGain(); musicGain.gain.value=0.05; musicGain.connect(masterGain);
+      }
+      function sfx(freq=440, dur=0.06, type='square', vol=0.25){
+        if(!audioCtx || muteChk.checked) return;
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type=type; o.frequency.value=freq;
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+dur);
+        o.connect(g); g.connect(masterGain);
+        o.start(); o.stop(audioCtx.currentTime+dur);
+      }
+      function thwack(){ sfx(140, .07, 'square', 0.35); sfx(60, .08, 'sawtooth', 0.25); }
+      function snip(){ sfx(900, .03, 'triangle', 0.12); }
+      function coin(){ sfx(1200, .12, 'square', 0.2); }
+      function fanfare(){ sfx(440,.12,'square',.25); setTimeout(()=>sfx(660,.14,'square',.25),100); setTimeout(()=>sfx(880,.18,'square',.25),220); }
+
+      function toggleMusic(on){
+        musicOn = on;
+        if(!audioCtx) return;
+        if(on){
+          if(musicOsc) return;
+          musicOsc=audioCtx.createOscillator();
+          musicOsc.type='triangle';
+          musicOsc.frequency.value=90; // silly drone
+          musicOsc.connect(musicGain);
+          musicOsc.start();
+        } else {
+          try { musicOsc && musicOsc.stop(); } catch(e){}
+          musicOsc=null;
+        }
+      }
+
+      // ===== Input state
+      const keys=new Set();
+      const mouse={x:0,y:0,down:false};
+      const touch={leftId:null,rightId:null,left:null,right:null};
+
+      // ===== Game state
+      let state=null;
+      let last=performance.now();
+      let running=false;
+      let animId=0;
+      let highScore = parseInt(localStorage.getItem('tyson_highscore')||'0',10);
+
+      // ===== Particles (rainbow confetti + sparks)
+      function spawnConfetti(x,y,count=20){
+        state.particles = state.particles || [];
+        for (let i=0;i<count;i++){
+          state.particles.push({
+            x,y,
+            vx:Math.random()*4-2,
+            vy:Math.random()*-3-0.5,
+            g:0.08+Math.random()*0.05,
+            life: 40+Math.floor(Math.random()*20),
+            size: 3+Math.random()*3,
+            color:`hsl(${Math.random()*360},100%,60%)`
+          });
+        }
+      }
+      function updateParticles(){
+        if(!state.particles) return;
+        for(const p of state.particles){
+          p.life--;
+          p.x+=p.vx; p.y+=p.vy; p.vy+=p.g;
+        }
+        state.particles = state.particles.filter(p=>p.life>0);
+      }
+      function drawParticles(){
+        if(!state.particles) return;
+        for(const p of state.particles){
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+        }
+      }
+
+      // ===== Floating taunts
+      const baseTaunts = [
+        "Oof!", "Bat-tastic!", "Scissor Fail!", "Tyson Wins!", "Snip Snip — No!", "Bonk!", "KO!", "Clutch!", "Outta here!", "Sit down!"
+      ];
+      const spicyTaunts = [
+        "Bring a bat next time!", "Detention 🛎️", "Tyson just yeeted your GPA!", "Scissors? Bold.", "Bat > ✂️", "Clang!", "Snipped your hopes!", "Not today, kid!", "Curriculum Adjusted!"
+      ];
+      const unhingedTaunts = [
+        "Massacre Mode Activated!", "WELCOME TO BAT SCHOOL", "Homework: Duck.", "Legendary Bonk!", "Certified Batness", "Physics Lesson: Momentum", "Clip… Clapped.", "Principal Approved!"
+      ];
+      function pickTaunt(){
+        const k = state.playerKills||0;
+        if(k>20) return unhingedTaunts[Math.floor(Math.random()*unhingedTaunts.length)];
+        if(k>8) return spicyTaunts[Math.floor(Math.random()*spicyTaunts.length)];
+        return baseTaunts[Math.floor(Math.random()*baseTaunts.length)];
+      }
+      function addTaunt(x,y){
+        state.floats = state.floats || [];
+        state.floats.push({text: pickTaunt(), x, y, life: 60});
+      }
+      function updateFloats(){
+        if(!state.floats) return;
+        for(const f of state.floats){ f.y-=0.6; f.life--; }
+        state.floats = state.floats.filter(f=>f.life>0);
+      }
+      function drawFloats(){
+        if(!state.floats) return;
+        ctx.font = '700 18px system-ui, -apple-system, Segoe UI';
+        ctx.textBaseline = 'bottom';
+        ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth=3;
+        for(const f of state.floats){
+          ctx.globalAlpha = Math.max(0, f.life/60);
+          ctx.strokeText(f.text, f.x+1, f.y+1);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(f.text, f.x, f.y);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // ===== Epstone hunting helpers
+      let epRetargetTimer = 0;  // seconds between retargets
+      function acquireEpTarget() {
+        const ep = state.epstone;
+        if (!ep) return null;
+        if (!state.enemies || state.enemies.length === 0) {
+          return { x: state.player.x, y: state.player.y, type: 'player' };
+        }
+        // nearest HS
+        let best = null, bestD2 = Infinity;
+        for (const e of state.enemies) {
+          const dx = e.x - ep.x, dy = e.y - ep.y, d2 = dx*dx + dy*dy;
+          if (d2 < bestD2) { best = e; bestD2 = d2; }
+        }
+        return best ? { x: best.x, y: best.y, type: 'hs' } : null;
+      }
+      function steerEpstoneToward(target, dt) {
+        const ep = state.epstone;
+        if (!ep || !target) return;
+        let [nx, ny] = norm(target.x - ep.x, target.y - ep.y);
+
+        // simple obstacle avoidance
+        const look = 40 + ep.speed * 0.25;
+        const future = { x: ep.x + nx * look, y: ep.y + ny * look, r: ep.r };
+        for (const r of state.obstacles) {
+          if (circleRectCollide(future, r)) {
+            const cx = clamp(future.x, r.x, r.x + r.w);
+            const cy = clamp(future.y, r.y, r.y + r.h);
+            const [px, py] = norm(future.x - cx, future.y - cy);
+            nx += px * 2.0;
+            ny += py * 2.0;
+          }
+        }
+        [nx, ny] = norm(nx, ny);
+        ep.x += nx * ep.speed * dt;
+        ep.y += ny * ep.speed * dt;
+      }
+
+      // ===== Crazy (Wild) Mode events
+      function triggerWildEvent(){
+        if(!state.crazy) return;
+        const roll = Math.random();
+        if(roll < 0.33){
+          // Speed jitter for 6s
+          state.enemies.forEach(e => e.speedMul = 0.7 + Math.random()*0.8);
+          state.wildTimers.push({t:6, type:'speedReset'});
+          addTaunt(state.player.x, state.player.y-30);
+        } else if(roll < 0.66){
+          // Meteor shower (hazards)
+          for(let i=0;i<8;i++){
+            state.meteors.push({
+              x: Math.random()*state.W,
+              y: -40 - Math.random()*200,
+              vy: 200 + Math.random()*160,
+              w: 14+Math.random()*12,
+              h: 28+Math.random()*20,
+              t: 5
+            });
+          }
+          addTaunt(state.player.x, state.player.y-30);
+        } else {
+          // Clone army: duplicate a few enemies
+          const picks = Math.min(6, state.enemies.length);
+          for(let i=0;i<picks;i++){
+            const e = state.enemies[Math.floor(Math.random()*state.enemies.length)];
+            if(!e) break;
+            state.enemies.push({x:e.x+randRange(-20,20), y:e.y+randRange(-20,20), r:e.r, speed:e.speed, hp:e.hp, elite:false, disarmed:false, knockT:0, knockVx:0, knockVy:0, touchCd:0, speedMul:1});
+          }
+          spawnConfetti(state.player.x, state.player.y, 30);
+        }
+        state.nextWildIn = 18 + Math.random()*12; // schedule next
+      }
+
+      // ===== Canvas / level
+      function resize(){
+        const dpr=window.devicePixelRatio||1;
+        const w=Math.min(wrap.clientWidth,1100);
+        const h=Math.min(Math.max(wrap.clientHeight,560),820);
+        canvas.width=Math.floor(w*dpr);
+        canvas.height=Math.floor(h*dpr);
+        canvas.style.width=w+'px';
+        canvas.style.height=h+'px';
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        if(state){ draw(); }
+      }
+      window.addEventListener('resize',resize);
+
+      function createLevel(){
+        const W=parseInt(canvas.style.width)||canvas.width;
+        const H=parseInt(canvas.style.height)||canvas.height;
+        const margin=24;
+        const obstacles=[];
+        const deskW=120,deskH=60,gapX=40,gapY=40,rows=2,cols=3;
+        const sx=(W-(cols*deskW+(cols-1)*gapX))/2;
+        const sy=(H-(rows*deskH+(rows-1)*gapY))/2;
+        for(let r=0;r<rows;r++){
+          for(let c=0;c<cols;c++){
+            obstacles.push({x:sx+c*(deskW+gapX),y:sy+r*(deskH+gapY),w:deskW,h:deskH});
+          }
+        }
+        return {W,H,room:{w:W,h:H,margin},obstacles};
+      }
+
+      function createGame(){
+        const {W,H,room,obstacles}=createLevel();
+        const player={
+          x:W*0.5,y:H*0.85,r:16,
+          speed:230,aim:0,hp:3,iFrames:0,
+          swing:{active:false,t:0,duration:0.24,arc:1.9,range:72,cooldown:0},
+          power:{flameT:0, shrinkT:0}
+        };
+        const difficulty = clamp(parseInt(diffSel?.value||'2')-1,0,2);
+        const enemyCount=[24,30,36][difficulty];
+        const enemySpeed=[85,105,125][difficulty];
+        const epSpeed=Math.round(enemySpeed*0.85); // as fast as Olgas
+        const enemies=[];
+        const spawnR=Math.min(W,H)*0.42;
+        for(let i=0;i<enemyCount;i++){
+          const a=i/enemyCount*Math.PI*2;
+          const x=W*0.5+Math.cos(a)*spawnR;
+          const y=H*0.45+Math.sin(a)*spawnR*0.7;
+          enemies.push({x,y,r:14,speed:enemySpeed,hp:1,elite:false,disarmed:false,knockT:0,knockVx:0,knockVy:0,touchCd:0, speedMul:1});
+        }
+        // 5 Olga elites (bigger, blue/white, +1 HP, slightly slower)
+        const buffCount=Math.min(5,enemies.length);
+        const picks=new Set();
+        while(picks.size<buffCount) picks.add(Math.floor(Math.random()*enemies.length));
+        for(const idx of picks){
+          const e=enemies[idx];
+          e.elite=true; e.hp=2; e.r=18; e.speed=Math.round(e.speed*0.8
