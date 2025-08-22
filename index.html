@@ -435,7 +435,7 @@
       function spawnPowerUp(x,y,type){ state.powerUps.push({type,x,y,r:10,t:0,taken:false}); }
       function spawnEpstone(){
         const x=state.W*0.5, y=state.H*0.25;
-        state.epstone={ x,y,r:28,hp:20,speed:state.epSpeed,disarmed:false, knockT:0,knockVx:0,knockVy:0, batAngle:0,batSpeed:3.2,batArc:1.1,batRange:95, phase:1, orbiters:[], stolenHp: 0 };
+        state.epstone={ x,y,r:28,hp:20,maxHp:20,speed:state.epSpeed,disarmed:false, knockT:0,knockVx:0,knockVy:0, batAngle:0,batSpeed:3.2,batArc:1.1,batRange:95, phase:1, orbiters:[], stolenHp: 0 };
         state.epTarget=acquireEpTarget();
       }
 
@@ -511,7 +511,14 @@
 
         const aliveM=[]; for(const m of state.meteors){ m.y+=m.vy*dt; m.t-=dt;
           for(const e of state.enemies){ if(e.disarmed) continue; const er=e.r*(p.power.shrinkT>0?0.6:1); if(e.x>m.x-m.w && e.x<m.x+m.w && e.y>m.y-m.h && e.y<m.y+m.h){ e.hp=0; e.disarmed=true; state.playerKills++; state.score+=50; spawnConfetti(e.x,e.y,12); addTaunt(e.x,e.y-10); } }
-          if(p.x>m.x-m.w && p.x<m.x+m.w && p.y>m.y-m.h && p.y<m.y+m.h){ if(p.iFrames<=0){ p.hp-=1; p.iFrames=1.0; addShake(0.25); } }
+          if(p.x>m.x-m.w && p.x<m.x+m.w && p.y>m.y-m.h && p.y<m.y+m.h){ if(p.iFrames<=0){ p.hp-=1; p.iFrames=1.0; addShake(0.25); if(p.hp<=0){ updateHUD(); stop(false); return; } } }
+          if (state.epstone && !state.epstone.disarmed) {
+              const ep = state.epstone;
+              if (ep.x > m.x - m.w && ep.x < m.x + m.w && ep.y > m.y - m.h && ep.y < m.y + m.h) {
+                  ep.hp -= 2; addShake(0.15); spawnConfetti(ep.x, ep.y, 15); m.t = 0;
+                  if (ep.hp <= 0) { ep.disarmed = true; state.score += 500; }
+              }
+          }
           if(m.y<state.H+60 && m.t>0) aliveM.push(m);
         } state.meteors=aliveM;
 
@@ -524,7 +531,7 @@
           for(const r of state.obstacles){ if(circleRectCollide(cc,r)){ const cx=clamp(cc.x,r.x,r.x+r.w), cy=clamp(cc.y,r.y,r.y+r.h); const dx=cc.x-cx,dy=cc.y-cy; if(Math.abs(dx)>Math.abs(dy)) ep.y+=Math.sign(dy)*(cc.r-Math.abs(dy)+0.1); else ep.x+=Math.sign(dx)*(cc.r-Math.abs(dx)+0.1); cc.x=ep.x; cc.y=ep.y; } }
           ep.batAngle=(ep.batAngle+ep.batSpeed*dt)%(Math.PI*2);
           for(const e of state.enemies){ if(e.disarmed) continue; if(withinArc(e.x,e.y,ep.x,ep.y,ep.batAngle,ep.batArc,ep.batRange)){ e.hp-=1; if(e.hp<=0){ e.disarmed=true; state.epKills++; ep.stolenHp += e.maxHp; addShake(0.12); spawnConfetti(e.x,e.y,10); } else { const [nx,ny]=norm(e.x-ep.x,e.y-ep.y); e.knockVx=nx*220; e.knockVy=ny*220; e.knockT=0.1; } } }
-          if(ep.phase>=2){ for(const o of ep.orbiters){ o.ang+=2.2*dt; const ox=ep.x+Math.cos(o.ang)*o.rad, oy=ep.y+Math.sin(o.ang)*o.rad; const dx=ox-state.player.x,dy=oy-state.player.y; if(dx*dx+dy*dy<(state.player.r+10)*(state.player.r+10)){ if(state.player.iFrames<=0){ state.player.hp-=1; state.player.iFrames=1.0; addShake(0.2); } } for(const e of state.enemies){ if(e.disarmed) continue; const ex=ox-e.x,ey=oy-e.y; const er=e.r*(state.player.power.shrinkT>0?0.6:1); if(ex*ex+ey*ey<(er+8)*(er+8)){ e.hp-=1; if(e.hp<=0){ e.disarmed=true; state.epKills++; ep.stolenHp += e.maxHp; spawnConfetti(e.x,e.y,8); } } } } }
+          if(ep.phase>=2){ for(const o of ep.orbiters){ o.ang+=2.2*dt; const ox=ep.x+Math.cos(o.ang)*o.rad, oy=ep.y+Math.sin(o.ang)*o.rad; const dx=ox-state.player.x,dy=oy-state.player.y; if(dx*dx+dy*dy<(state.player.r+10)*(state.player.r+10)){ if(state.player.iFrames<=0){ state.player.hp-=1; state.player.iFrames=1.0; addShake(0.2); if(state.player.hp<=0){ updateHUD(); stop(false); return; } } } for(const e of state.enemies){ if(e.disarmed) continue; const ex=ox-e.x,ey=oy-e.y; const er=e.r*(state.player.power.shrinkT>0?0.6:1); if(ex*ex+ey*ey<(er+8)*(er+8)){ e.hp-=1; if(e.hp<=0){ e.disarmed=true; state.epKills++; ep.stolenHp += e.maxHp; spawnConfetti(e.x,e.y,8); } } } } }
           if(withinArc(p.x,p.y,ep.x,ep.y,ep.batAngle,ep.batArc,ep.batRange+p.r)){ if(p.iFrames<=0){ p.hp-=1; p.iFrames=1.0; addShake(0.18); if(p.hp<=0){ updateHUD(); stop(false); return; } } }
         }
 
@@ -549,7 +556,7 @@
             if(hit||glance){
               ep.hp-=1; addShake(0.08); spawnConfetti(ep.x,ep.y,6);
               if(ep.hp<=0){ ep.disarmed=true; state.score+=500; addShake(0.2); spawnConfetti(ep.x,ep.y,30); }
-              else { const [nx,ny]=norm(ep.x-p.x,ep.y-p.y); const k=hit?240:200; ep.knockVx=nx*k; ep.knockVy=ny*k; ep.knockT=0.15; }
+              else { const [nx,ny]=norm(ep.x-p.x,e.y-p.y); const k=hit?240:200; ep.knockVx=nx*k; ep.knockVy=ny*k; ep.knockT=0.15; }
             }
           }
         }
@@ -564,11 +571,12 @@
         if (state.enemies.length === 0 && state.epstone && !state.epstone.disarmed && !state.bossPhaseActive) {
             state.bossPhaseActive = true;
             state.epstone.hp += state.epstone.stolenHp;
+            state.epstone.maxHp += state.epstone.stolenHp;
             state.epstone.speed *= 1.2;
             state.epstone.batSpeed *= 1.2;
             addShake(0.5);
             vibrate([100, 50, 100]);
-            state.floats.push({text:"FINAL SHOWDOWN!", x:state.W/2 - 100, y:state.H/2, life:180});
+            state.floats.push({text:"You weren't on my list, Mike!", x:state.W/2 - 150, y:state.H/2, life:180});
             sfx(100, .5, 'sawtooth', 0.4);
         }
 
@@ -582,6 +590,7 @@
 
       function draw(){
         if(!state) return; const {W,H}=state;
+        const p=state.player;
         ctx.clearRect(0,0,W,H);
         ctx.save(); if(state.shake>0) ctx.translate(randRange(-1,1)*state.shake*6,randRange(-1,1)*state.shake*6);
 
@@ -605,42 +614,69 @@
         for(const c of state.clones){ ctx.beginPath(); ctx.arc(c.x,c.y,c.r,0,Math.PI*2); ctx.fillStyle='#60a5fa'; ctx.fill(); ctx.strokeStyle='#1d4ed8'; ctx.lineWidth=2; ctx.stroke(); }
 
         for(const e of state.enemies){
-          const er=e.r*(state.player.power.shrinkT>0?0.6:1);
-          if(e.elite){ const grd=ctx.createRadialGradient(e.x-4,e.y-4,4,e.x,e.y,er+2); grd.addColorStop(0,'#e0f2fe'); grd.addColorStop(1,'#60a5fa'); ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(e.x,e.y,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#e2e8f0'; ctx.stroke(); }
-          else { ctx.fillStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(e.x,e.y,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#334155'; ctx.stroke(); }
+          const er=e.r*(p.power.shrinkT>0?0.6:1);
+          ctx.save();
+          ctx.translate(e.x, e.y);
+          const angle = Math.atan2(p.y - e.y, p.x - e.x);
+          ctx.rotate(angle);
+          
+          if(e.elite){ const grd=ctx.createRadialGradient(-4,-4,4,0,0,er+2); grd.addColorStop(0,'#e0f2fe'); grd.addColorStop(1,'#60a5fa'); ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#e2e8f0'; ctx.stroke(); }
+          else { ctx.fillStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(0,0,er,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#334155'; ctx.stroke(); }
+
+          // Draw scissors
+          ctx.fillStyle = '#94a3b8'; // metal grey
+          ctx.beginPath(); ctx.arc(er - 2, 5, 3, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(er - 2, -5, 3, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(er, 0); ctx.lineTo(er + 10, 5); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(er, 0); ctx.lineTo(er + 10, -5); ctx.stroke();
+          ctx.restore();
         }
 
         if(state.epstone && !state.epstone.disarmed){
           const ep=state.epstone;
           ctx.save(); ctx.shadowBlur=18; ctx.shadowColor='#a855f7'; ctx.fillStyle='rgba(168,85,247,0.9)'; ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; ctx.restore();
           ctx.lineWidth=3; ctx.strokeStyle='#6d28d9'; ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r,0,Math.PI*2); ctx.stroke();
+
+          // Lawyer Symbol
+          ctx.font = `bold ${ep.r}px sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.fillText('§', ep.x, ep.y + 2);
+
+          // Health Bar
+          const barW = 60, barH = 8, barX = ep.x - barW/2, barY = ep.y - ep.r - barH - 8;
+          const hpRatio = Math.max(0, ep.hp / ep.maxHp);
+          ctx.fillStyle = '#334155'; ctx.fillRect(barX, barY, barW, barH);
+          ctx.fillStyle = '#a855f7'; ctx.fillRect(barX, barY, barW * hpRatio, barH);
+          ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, barW, barH);
+          
           ctx.save(); ctx.translate(ep.x,ep.y); ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,ep.batRange,ep.batAngle-ep.batArc/2,ep.batAngle+ep.batArc/2); ctx.closePath(); ctx.fillStyle='rgba(168,85,247,0.25)'; ctx.fill(); ctx.restore();
           if(ep.phase>=2){ for(const o of ep.orbiters){ const ox=ep.x+Math.cos(o.ang)*o.rad, oy=ep.y+Math.sin(o.ang)*o.rad; ctx.beginPath(); ctx.arc(ox,oy,8,0,Math.PI*2); ctx.fillStyle='#a78bfa'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#6d28d9'; ctx.stroke(); } }
         }
 
-        const p=state.player;
         if(p.power.flameT>0){ ctx.save(); ctx.shadowBlur=10; ctx.shadowColor='#facc15'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+10,0,Math.PI*2); ctx.strokeStyle='#facc15'; ctx.lineWidth=3; ctx.stroke(); ctx.restore(); }
         if(p.power.shrinkT>0){ ctx.save(); ctx.globalAlpha=.35; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+16,0,Math.PI*2); ctx.fillStyle='#34d399'; ctx.fill(); ctx.globalAlpha=1; ctx.restore(); }
         if(p.swing.active){ const prog=p.swing.t/p.swing.duration, start=p.aim-p.swing.arc*0.5, cur=start+p.swing.arc*prog; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.arc(p.x,p.y,p.swing.range,start,cur); ctx.closePath(); ctx.fillStyle='rgba(250,204,21,0.25)'; ctx.fill(); }
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle='#22c55e'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#065f46'; ctx.stroke();
         
-        // Draw visual touch controls
+        // Draw Player with Gloves
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.aim);
+        ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fillStyle='#22c55e'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#065f46'; ctx.stroke();
+        ctx.fillStyle = '#ef4444'; // Red for gloves
+        ctx.beginPath(); ctx.arc(p.r - 4, -p.r/2 - 2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.r - 4, p.r/2 + 2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+        
         ctx.globalAlpha = 0.25;
         if(touch.left) {
-            ctx.beginPath();
-            ctx.arc(touch.left.start.x, touch.left.start.y, 48, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(touch.left.cur.x, touch.left.cur.y, 32, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(touch.left.start.x, touch.left.start.y, 48, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+            ctx.beginPath(); ctx.arc(touch.left.cur.x, touch.left.cur.y, 32, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
         }
         if(touch.right) {
-            ctx.beginPath();
-            ctx.arc(touch.right.center.x, touch.right.center.y, 48, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(touch.right.center.x, touch.right.center.y, 48, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
         }
         ctx.globalAlpha = 1;
 
@@ -670,18 +706,14 @@
       }
 
       function runCountdown(){
-        console.log("Countdown function has started.");
         show(startOverlay);
-        let remaining = 1 + Math.floor(Math.random()*3);
+        let remaining = 3;
         countNum.textContent = String(remaining);
         countLabel.textContent = 'Starting in…';
-        console.log("Initial countdown number is:", remaining);
 
         const tick = () => {
           remaining -= 1;
-          console.log("Tick! Remaining:", remaining);
           if(remaining <= 0){
-            console.log("Countdown finished! Starting game.");
             hide(startOverlay);
             start();
           } else {
@@ -689,8 +721,6 @@
             setTimeout(tick, 1000);
           }
         };
-        
-        console.log("Scheduling the first tick in 1 second...");
         setTimeout(tick, 1000);
       }
 
