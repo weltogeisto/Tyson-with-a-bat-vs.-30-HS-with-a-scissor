@@ -126,6 +126,14 @@
   <div class="wrap" id="wrap">
     <canvas id="game"></canvas>
 
+    <!-- ERROR OVERLAY (shows script errors even on mobile) -->
+    <div id="errOverlay" class="overlay hide">
+      <div class="panel">
+        <div style="font-weight:800;font-size:20px;margin-bottom:6px">Script error</div>
+        <pre id="errMsg" style="white-space:pre-wrap;text-align:left;color:#e5e7eb;margin:0"></pre>
+      </div>
+    </div>
+
     <!-- HUD -->
     <div class="hud">
       <div class="card">
@@ -187,7 +195,6 @@
           </div>
         </div>
         <div class="actions">
-          <!-- super-safe: global startGame() exists even before the game bootstraps -->
           <button id="playBtn" class="start" type="button" onclick="startGame()">Play</button>
         </div>
       </div>
@@ -208,10 +215,10 @@
     <div class="hint">Tip: Strike as the front ranks touch your arc. Elites drop flames — grab them for wider, hotter swings. Outscore Epstone to avoid a final showdown!</div>
   </div>
 
+  <!-- GLOBAL PLAY STUB: always present & super-safe -->
   <script>
-  /* -------- GLOBAL PLAY STUB (works even before the game bootstraps) -------- */
-  window.__wantStart = false;
-  window.startGame = function(){ window.__wantStart = true; /* real starter is installed after boot */ };
+    window.wantStart = false;
+    window.startGame = function () { window.wantStart = true; };
   </script>
 
   <script>
@@ -220,6 +227,13 @@
       const wrap=document.getElementById('wrap');
       const canvas=document.getElementById('game');
       const ctx=canvas.getContext('2d');
+
+      // Error overlay (shows boot errors)
+      const errOverlay=document.getElementById('errOverlay');
+      const errMsg=document.getElementById('errMsg');
+      function showErr(msg){ if(errOverlay&&errMsg){ errMsg.textContent=String(msg); errOverlay.classList.remove('hide'); } }
+      window.addEventListener('error', e => showErr(e.error?.stack||e.message||e));
+      window.addEventListener('unhandledrejection', e => showErr(e.reason?.stack||e.reason||e));
 
       /* ===== Utilities ===== */
       const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -258,13 +272,12 @@
       const endOverlay=document.getElementById('endOverlay');
       const endTitle=document.getElementById('endTitle');
       const endMsg=document.getElementById('endMsg');
-      const startBtn=document.getElementById('startBtn');
       const resetBtn=document.getElementById('resetBtn');
       const shareBtn=document.getElementById('shareBtn');
 
       /* ===== Audio (no external files) ===== */
       let audioCtx=null, masterGain=null, musicGain=null;
-      let musicOsc=null, musicOn=false;
+      let musicOsc=null;
       function ensureAudio(){
         if(audioCtx) return;
         audioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -284,7 +297,20 @@
       const snip=()=> sfx(900,.03,'triangle',.12);
       const coin=()=> sfx(1200,.12,'square',.2);
       function fanfare(){ sfx(440,.12,'square',.25); setTimeout(()=>sfx(660,.14,'square',.25),100); setTimeout(()=>sfx(880,.18,'square',.25),220); }
-      function toggleMusic(on){ musicOn=on; if(!audioCtx) return; if(on){ if(musicOsc) return; musicOsc=audioCtx.createOscillator(); musicOsc.type='triangle'; musicOsc.frequency.value=90; musicOsc.connect(musicGain); musicOsc.start(); } else { try{ musicOsc&&musicOsc.stop(); }catch(e){} musicOsc=null; } }
+      function toggleMusic(on){
+        if(!audioCtx) return;
+        if(on){
+          if(musicOsc) return;
+          musicOsc=audioCtx.createOscillator();
+          musicOsc.type='triangle';
+          musicOsc.frequency.value=90;
+          musicOsc.connect(musicGain);
+          musicOsc.start();
+        } else {
+          try{ musicOsc&&musicOsc.stop(); }catch(e){}
+          musicOsc=null;
+        }
+      }
 
       /* ===== Input state ===== */
       const keys=new Set();
@@ -336,9 +362,24 @@
       function triggerWildEvent(){
         if(!state.crazy) return;
         const roll=Math.random();
-        if(roll<.33){ state.enemies.forEach(e=>e.speedMul=0.7+Math.random()*0.8); state.wildTimers.push({t:6,type:'speedReset'}); addTaunt(state.player.x,state.player.y-30);
-        } else if(roll<.66){ for(let i=0;i<8;i++){ state.meteors.push({x:Math.random()*state.W,y:-40-Math.random()*200,vy:200+Math.random()*160,w:14+Math.random()*12,h:28+Math.random()*20,t:5}); } addTaunt(state.player.x,state.player.y-30);
-        } else { const picks=Math.min(6,state.enemies.length); for(let i=0;i<picks;i++){ const e=state.enemies[Math.floor(Math.random()*state.enemies.length)]; if(!e) break; state.enemies.push({x:e.x+randRange(-20,20),y:e.y+randRange(-20,20),r:e.r,speed:e.speed,hp:e.hp,elite:false,disarmed:false,knockT:0,knockVx:0,knockVy:0,touchCd:0,speedMul:1}); } spawnConfetti(state.player.x,state.player.y,30); }
+        if(roll<.33){
+          state.enemies.forEach(e=>e.speedMul=0.7+Math.random()*0.8);
+          state.wildTimers.push({t:6,type:'speedReset'});
+          addTaunt(state.player.x,state.player.y-30);
+        } else if(roll<.66){
+          for(let i=0;i<8;i++){
+            state.meteors.push({x:Math.random()*state.W,y:-40-Math.random()*200,vy:200+Math.random()*160,w:14+Math.random()*12,h:28+Math.random()*20,t:5});
+          }
+          addTaunt(state.player.x,state.player.y-30);
+        } else {
+          const picks=Math.min(6,state.enemies.length);
+          for(let i=0;i<picks;i++){
+            const e=state.enemies[Math.floor(Math.random()*state.enemies.length)];
+            if(!e) break;
+            state.enemies.push({x:e.x+randRange(-20,20),y:e.y+randRange(-20,20),r:e.r,speed:e.speed,hp:e.hp,elite:false,disarmed:false,knockT:0,knockVx:0,knockVy:0,touchCd:0,speedMul:1});
+          }
+          spawnConfetti(state.player.x,state.player.y,30);
+        }
         state.nextWildIn=18+Math.random()*12;
       }
 
@@ -387,18 +428,8 @@
         updateHUD(); hide(endOverlay); show(startOverlay); draw();
       }
 
-      /* ===== Power-ups & boss ===== */
       function spawnPowerUp(x,y,type){ state.powerUps.push({type,x,y,r:10,t:0,taken:false}); }
       function spawnEpstone(){
         const x=state.W*0.5, y=state.H*0.25;
         state.epstone={ x,y,r:28,hp:20,speed:state.epSpeed,disarmed:false, knockT:0,knockVx:0,knockVy:0, batAngle:0,batSpeed:3.2,batArc:1.1,batRange:95, phase:1, orbiters:[] };
-        state.epTarget=acquireEpTarget();
-      }
-
-      function start(){
-        running=true; last=performance.now(); hide(startOverlay); cancelAnimationFrame(animId); animId=requestAnimationFrame(loop);
-        ensureAudio(); toggleMusic(!muteChk.checked);
-      }
-      function stop(win){
-        running=false; toggleMusic(false);
-        endTitl
+        state.epTarget=acquireEpTarg
