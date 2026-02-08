@@ -118,6 +118,38 @@
     .hide { display:none; }
     .hud, .controls { z-index:10; }
     .overlay { z-index:50; }
+    .mobile-settings {
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      display:none;
+      flex-direction:column;
+      gap:10px;
+      z-index:60;
+    }
+    .settings-fab {
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:700;
+      background:var(--accent);
+      color:#0b1220;
+      border:0;
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+    }
+    .settings-panel {
+      display:none;
+      flex-direction:column;
+      gap:10px;
+      min-width:210px;
+      background:rgba(15,23,42,.95);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    .settings-panel.open { display:flex; }
+    .settings-row { display:flex; flex-direction:column; gap:6px; }
+    .settings-actions { display:flex; gap:8px; justify-content:flex-end; }
     .countNum {
       font-size:64px;
       font-weight:900;
@@ -138,6 +170,7 @@
       .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .big { font-size: 16px; }
       .controls { display: none; } /* Hide desktop controls on small screens */
+      .mobile-settings { display:flex; }
     }
   </style>
 </head>
@@ -182,6 +215,24 @@
       <div class="row">
         <button class="play" id="restartBtn" type="button">Restart (reload)</button>
         <button class="reset" id="resetBtn" type="button">Reset (in-place)</button>
+      </div>
+    </div>
+
+    <div class="mobile-settings" aria-live="polite">
+      <button class="settings-fab" id="settingsFab" type="button" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
+      <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="Settings">
+        <div class="settings-row">
+          <span class="muted">Difficulty</span>
+          <select id="diffMobile">
+            <option value="1">Easy (24)</option>
+            <option value="2" selected>Normal (30)</option>
+            <option value="3">Hard (36)</option>
+          </select>
+        </div>
+        <label class="switch"><input id="muteMobile" type="checkbox" /> Mute</label>
+        <div class="settings-actions">
+          <button class="reset" id="resetMobile" type="button">Reset</button>
+        </div>
       </div>
     </div>
 
@@ -273,6 +324,11 @@
       const againBtn=document.getElementById('againBtn');
       const countNum=document.getElementById('countNum');
       const countLabel=document.getElementById('countLabel');
+      const settingsFab=document.getElementById('settingsFab');
+      const settingsPanel=document.getElementById('settingsPanel');
+      const diffMobile=document.getElementById('diffMobile');
+      const muteMobile=document.getElementById('muteMobile');
+      const resetMobile=document.getElementById('resetMobile');
 
       // Audio
       let audioCtx=null, masterGain=null, musicGain=null, musicOsc=null;
@@ -314,6 +370,11 @@
       const keys=new Set();
       const mouse={x:0,y:0,down:false};
       const touch={leftId:null,rightId:null,left:null,right:null};
+
+      function syncMobileControls(){
+        if(diffMobile && diffSel) diffMobile.value = diffSel.value;
+        if(muteMobile && muteChk) muteMobile.checked = muteChk.checked;
+      }
 
       // Game state
       let state=null;
@@ -938,14 +999,40 @@
       // Buttons
       if(resetBtn) resetBtn.addEventListener('click', reset);
       if(diffSel)  diffSel.addEventListener('change', reset);
-      if(muteChk)  muteChk.addEventListener('change', ()=>{ if(muteChk.checked) toggleMusic(false); else { ensureAudio(); toggleMusic(true);} });
+      if(muteChk)  muteChk.addEventListener('change', ()=>{ if(muteChk.checked) toggleMusic(false); else { ensureAudio(); toggleMusic(true);} syncMobileControls(); });
+      if(diffSel) diffSel.addEventListener('change', syncMobileControls);
       if(restartBtn) restartBtn.addEventListener('click', ()=>location.reload());
       if(againBtn)   againBtn.addEventListener('click', reset);
+      if(settingsFab && settingsPanel){
+        settingsFab.addEventListener('click', () => {
+          const isOpen = settingsPanel.classList.toggle('open');
+          settingsFab.setAttribute('aria-expanded', String(isOpen));
+          if(isOpen) syncMobileControls();
+        });
+      }
+      if(diffMobile && diffSel){
+        diffMobile.addEventListener('change', () => {
+          diffSel.value = diffMobile.value;
+          diffSel.dispatchEvent(new Event('change', {bubbles:true}));
+        });
+      }
+      if(muteMobile && muteChk){
+        muteMobile.addEventListener('change', () => {
+          muteChk.checked = muteMobile.checked;
+          muteChk.dispatchEvent(new Event('change', {bubbles:true}));
+        });
+      }
+      if(resetMobile && resetBtn){
+        resetMobile.addEventListener('click', () => {
+          resetBtn.click();
+        });
+      }
 
       // Boot
       resize();
       createGame();
       bestEl.textContent = highScore;
+      syncMobileControls();
       setTimeout(runCountdown, 0);
     })();
   });
