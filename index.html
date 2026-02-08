@@ -193,6 +193,7 @@
           Kite the swarm, use desks as choke points, and time your bat swing.<br>
           Elites can drop a <span style="color:var(--warn);font-weight:700)">Flame Bat</span>. After 10 kills, beware: a massive purple Epstone will enter the fray!
         </p>
+        <div class="muted" id="touchHint" style="margin-top:4px"></div>
       </div>
     </div>
 
@@ -264,6 +265,7 @@
       const crazyChk=document.getElementById('crazy');
       const muteChk=document.getElementById('mute');
       const startOverlay=document.getElementById('startOverlay');
+      const touchHint=document.getElementById('touchHint');
       const endOverlay=document.getElementById('endOverlay');
       const endTitle=document.getElementById('endTitle');
       const endMsg=document.getElementById('endMsg');
@@ -943,6 +945,10 @@
       if(againBtn)   againBtn.addEventListener('click', reset);
 
       // Boot
+      if (touchHint) {
+        const touchCapable = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        touchHint.textContent = touchCapable ? 'Touch controls: left thumb to move, right thumb to aim/swing.' : '';
+      }
       resize();
       createGame();
       bestEl.textContent = highScore;
