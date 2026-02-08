@@ -53,6 +53,24 @@
       </div>
     </div>
 
+    <div class="mobile-settings" aria-live="polite">
+      <button class="settings-fab" id="settingsFab" type="button" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
+      <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="Settings">
+        <div class="settings-row">
+          <span class="muted">Difficulty</span>
+          <select id="diffMobile">
+            <option value="1">Easy (24)</option>
+            <option value="2" selected>Normal (30)</option>
+            <option value="3">Hard (36)</option>
+          </select>
+        </div>
+        <label class="switch"><input id="muteMobile" type="checkbox" /> Mute</label>
+        <div class="settings-actions">
+          <button class="reset" id="resetMobile" type="button">Reset</button>
+        </div>
+      </div>
+    </div>
+
     <div class="overlay" id="startOverlay">
       <div class="panel">
         <h1 class="countNum" id="countNum">3</h1>
@@ -61,6 +79,7 @@
           Kite the swarm, use desks as choke points, and time your bat swing.<br>
           Elites can drop a <span style="color:var(--warn);font-weight:700)">Flame Bat</span>. After 10 kills, beware: a massive purple Epstone will enter the fray!
         </p>
+        <div class="muted" id="touchHint" style="margin-top:4px"></div>
       </div>
     </div>
 
